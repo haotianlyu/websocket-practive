@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.w3.org/1999/xhtml">
+<head>
+    <title>websocket</title>
+    <script type="text/javascript" src="http://ajax.microsoft.com/ajax/jquery/jquery-1.4.min.js"></script>
+    <script src="http://cdn.bootcss.com/stomp.js/2.3.3/stomp.min.js"></script>
+    <script src="https://cdn.bootcss.com/sockjs-client/1.1.4/sockjs.min.js"></script>
+</head>
+
+<body>
+<div style="margin: auto;text-align: center">
+    <h1>Welcome to websocket</h1>
+</div>
+<br/>
+<div style="margin: auto;text-align: center">
+    <select id="onLineUser">
+        <option>--所有--</option>
+    </select>
+    <input id="text" type="text"/>
+    <button onclick="send()">发送消息</button>
+</div>
+<br>
+<div style="margin-right: 10px;text-align: right">
+    <button onclick="closeWebSocket()">关闭连接</button>
+</div>
+<hr/>
+<div id="message" style="text-align: center;"></div>
+<input type="text" th:value="${username}" id="username" style="display: none"/>
+</body>
+
+
+<script type="text/javascript">
+    var webSocket;
+    var commWebSocket;
+    if("webSocket" in window) {
+        webSocket = new WebSocket("ws://localhost:8080/websocket/" + document.getElementById("username").value);
+
+        webSocket.onopen = function() {
+            console.log("websocket connected");
+            setMessageInnerHTML("Connected to websocket");
+        };
+
+        webSocket.onmessage = function(event) {
+            var received_message = event.data;
+            var obj = JSON.parse(received_message);
+            if(obj.messageType == 1) {
+                var onlineName = obj.username;
+                var option = "<option>" + onlineName + "</option>";
+                $("#onLineUser").append(option);
+                setMessageInnerHTML(onlineName + "上线了");
+            } else if (obj.messageType == 2) {
+                $("#onLineUser").empty();
+                var onlineName = obj.onlineUsers;
+                var offlineName = obj.username;
+                var option = "<option>" + "--所有--" + "</option>";
+                for (var i = 0; i < onlineName.length; i++) {
+                    if (!(onlineName[i] == document.getElementById('username').value)) {
+                        option += "<option>" + onlineName[i] + "</option>"
+                    }
+                }
+                $("#onLineUser").append(option);
+
+                setMessageInnerHTML(offlineName + "下线了");
+            } else if (obj.messageType == 3) {
+                var onlineName = obj.onlineUsers;
+                var option = null;
+                for (var i = 0; i < onlineName.length; i++) {
+                    if (!(onlineName[i] == document.getElementById('username').value)) {
+                        option += "<option>" + onlineName[i] + "</option>"
+                    }
+                }
+                $("#onLineUser").append(option);
+                console.log("获取了在线的名单" + onlineName.toString());
+            } else {
+                setMessageInnerHTML(obj.fromUsername + "对" + obj.toUsername + "说：" + obj.textMessage);
+            }
+        };
+
+        webSocket.onclose = function() {
+            setMessageInnerHTML("Connection closed");
+        };
+    } else {
+        alert("Unsupported websocket");
+    }
+
+    function setMessageInnerHTML(innerHTML) {
+        document.getElementById("message").innerHTML += innerHTML + "<br/>";
+    }
+
+    function closeWebsocket() {
+        webSocket.close();
+    }
+
+    function send() {
+        var selectText = $("#onLineUser").find("option:selected").text();
+        if (selectText == "--所有--") {
+            selectText = "All";
+        } else {
+            setMessageInnerHTML(document.getElementById('username').value + "对" + selectText + "说：" + $("#text").val());
+        }
+        var message = {
+            "message": document.getElementById('text').value,
+            "username": document.getElementById('username').value,
+            "to": selectText
+        };
+        webSocket.send(JSON.stringify(message));
+        $("#text").val("");
+    }
+</script>
+
+</html>
