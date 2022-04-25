@@ -32,8 +32,9 @@
 <script type="text/javascript">
     var webSocket;
     var commWebSocket;
+    var host = window.location.host;
     if("webSocket" in window) {
-        webSocket = new WebSocket("ws://localhost:8080/websocket/" + document.getElementById("username").value);
+        webSocket = new WebSocket("ws://" + host + "/websocket/" + document.getElementById("username").value);
 
         webSocket.onopen = function() {
             console.log("websocket connected");
@@ -87,7 +88,7 @@
         document.getElementById("message").innerHTML += innerHTML + "<br/>";
     }
 
-    function closeWebsocket() {
+    function closeWebSocket() {
         webSocket.close();
     }
 
